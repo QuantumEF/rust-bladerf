@@ -12,6 +12,7 @@ use num_complex::Complex;
 use bladerf_sys::*;
 
 pub mod error;
+use error::BladeRfError;
 
 // Macro to simplify integer returns
 macro_rules! handle_res {
@@ -19,14 +20,14 @@ macro_rules! handle_res {
     	if $e >= 0 {
 			return Ok($e as isize)
 		} else {
-			return Err($e as isize)
+			return Err(BladeRfError::from_code($e))
 		}
 	);
 	($res:expr, $out:expr) => (
 		if $res >= 0 {
 			return Ok($out)
 		} else {
-			return Err($res as isize)
+			return Err(BladeRfError::from_code($res))
 		}
 	);
 }
@@ -145,7 +146,7 @@ impl BladeRF {
     }
 
     /// Open a BladeRF device by identifier
-    pub fn open(identifier: Option<String>) -> Result<Self, isize> {
+    pub fn open(identifier: Option<String>) -> Result<Self, BladeRfError> {
         unsafe {
             let mut bladerf_device = Self {
                 device: MaybeUninit::uninit(),
@@ -164,7 +165,7 @@ impl BladeRF {
     }
 
     /// Open a BladeRF device by devinfo object
-    pub fn open_with_devinfo(mut devinfo: bladerf_devinfo) -> Result<Self, isize> {
+    pub fn open_with_devinfo(mut devinfo: bladerf_devinfo) -> Result<Self, BladeRfError> {
         let devinfo_ptr: *mut bladerf_devinfo = &mut devinfo as *mut bladerf_devinfo;
 
         unsafe {
@@ -181,7 +182,7 @@ impl BladeRF {
     // Device Properties and Information
     // http://www.nuand.com/libbladeRF-doc/v1.7.2/group___f_n___i_n_f_o.html
 
-    pub fn get_serial(&self) -> Result<String, isize> {
+    pub fn get_serial(&self) -> Result<String, BladeRfError> {
         unsafe {
             // Create raw data array for serial return
             let mut serial_data: Vec<::libc::c_char> = vec![0; 33];
@@ -204,7 +205,7 @@ impl BladeRF {
         }
     }
 
-    pub fn get_fpga_size(&self) -> Result<bladerf_fpga_size, isize> {
+    pub fn get_fpga_size(&self) -> Result<bladerf_fpga_size, BladeRfError> {
         let mut fpga_size: bladerf_fpga_size = bladerf_fpga_size_BLADERF_FPGA_UNKNOWN;
 
         unsafe {
@@ -214,7 +215,7 @@ impl BladeRF {
         }
     }
 
-    pub fn fw_version(&self) -> Result<bladerf_version, isize> {
+    pub fn fw_version(&self) -> Result<bladerf_version, BladeRfError> {
         unsafe {
             let mut version = bladerf_version {
                 major: 0,
@@ -229,7 +230,7 @@ impl BladeRF {
         }
     }
 
-    pub fn is_fpga_configured(&self) -> Result<bool, isize> {
+    pub fn is_fpga_configured(&self) -> Result<bool, BladeRfError> {
         unsafe {
             let res = bladerf_is_fpga_configured(self.device.assume_init());
 
@@ -241,7 +242,7 @@ impl BladeRF {
         }
     }
 
-    pub fn fpga_version(&self) -> Result<bladerf_version, isize> {
+    pub fn fpga_version(&self) -> Result<bladerf_version, BladeRfError> {
         unsafe {
             let mut version = bladerf_version {
                 major: 0,
@@ -259,7 +260,11 @@ impl BladeRF {
     // RX & TX Module Control
     // http://www.nuand.com/libbladeRF-doc/v1.7.2/group___f_n___m_o_d_u_l_e.html
 
-    pub fn enable_module(&self, module: bladerf_module, enable: bool) -> Result<isize, isize> {
+    pub fn enable_module(
+        &self,
+        module: bladerf_module,
+        enable: bool,
+    ) -> Result<isize, BladeRfError> {
         unsafe {
             let res = bladerf_enable_module(self.device.assume_init(), module, enable);
 
@@ -270,7 +275,7 @@ impl BladeRF {
     // Gain Control
     // http://www.nuand.com/libbladeRF-doc/v1.7.2/group___f_n___g_a_i_n.html
 
-    pub fn set_lna_gain(&self, gain: bladerf_lna_gain) -> Result<isize, isize> {
+    pub fn set_lna_gain(&self, gain: bladerf_lna_gain) -> Result<isize, BladeRfError> {
         unsafe {
             let res = bladerf_set_lna_gain(self.device.assume_init(), gain);
 
@@ -278,7 +283,7 @@ impl BladeRF {
         }
     }
 
-    pub fn get_lna_gain(&self) -> Result<bladerf_lna_gain, isize> {
+    pub fn get_lna_gain(&self) -> Result<bladerf_lna_gain, BladeRfError> {
         unsafe {
             let mut gain: bladerf_lna_gain = bladerf_lna_gain_BLADERF_LNA_GAIN_UNKNOWN;
 
@@ -288,7 +293,7 @@ impl BladeRF {
         }
     }
 
-    pub fn set_rxvga1(&self, gain: i32) -> Result<isize, isize> {
+    pub fn set_rxvga1(&self, gain: i32) -> Result<isize, BladeRfError> {
         unsafe {
             let res = bladerf_set_rxvga1(self.device.assume_init(), gain);
 
@@ -296,7 +301,7 @@ impl BladeRF {
         }
     }
 
-    pub fn get_rxvga1(&self) -> Result<i32, isize> {
+    pub fn get_rxvga1(&self) -> Result<i32, BladeRfError> {
         unsafe {
             let mut gain: i32 = 0;
 
@@ -306,7 +311,7 @@ impl BladeRF {
         }
     }
 
-    pub fn set_rxvga2(&self, gain: i32) -> Result<isize, isize> {
+    pub fn set_rxvga2(&self, gain: i32) -> Result<isize, BladeRfError> {
         unsafe {
             let res = bladerf_set_rxvga2(self.device.assume_init(), gain);
 
@@ -314,7 +319,7 @@ impl BladeRF {
         }
     }
 
-    pub fn get_rxvga2(&self) -> Result<i32, isize> {
+    pub fn get_rxvga2(&self) -> Result<i32, BladeRfError> {
         unsafe {
             let mut gain: i32 = 0;
 
@@ -324,7 +329,7 @@ impl BladeRF {
         }
     }
 
-    pub fn set_txvga1(&self, gain: i32) -> Result<isize, isize> {
+    pub fn set_txvga1(&self, gain: i32) -> Result<isize, BladeRfError> {
         unsafe {
             let res = bladerf_set_txvga1(self.device.assume_init(), gain);
 
@@ -332,7 +337,7 @@ impl BladeRF {
         }
     }
 
-    pub fn get_txvga1(&self) -> Result<i32, isize> {
+    pub fn get_txvga1(&self) -> Result<i32, BladeRfError> {
         unsafe {
             let mut gain: i32 = 0;
 
@@ -342,7 +347,7 @@ impl BladeRF {
         }
     }
 
-    pub fn set_txvga2(&self, gain: i32) -> Result<isize, isize> {
+    pub fn set_txvga2(&self, gain: i32) -> Result<isize, BladeRfError> {
         unsafe {
             let res = bladerf_set_txvga2(self.device.assume_init(), gain);
 
@@ -350,7 +355,7 @@ impl BladeRF {
         }
     }
 
-    pub fn get_txvga2(&self) -> Result<i32, isize> {
+    pub fn get_txvga2(&self) -> Result<i32, BladeRfError> {
         unsafe {
             let mut gain: i32 = 0;
 
@@ -360,7 +365,7 @@ impl BladeRF {
         }
     }
 
-    pub fn set_gain(&self, module: bladerf_module, gain: i32) -> Result<isize, isize> {
+    pub fn set_gain(&self, module: bladerf_module, gain: i32) -> Result<isize, BladeRfError> {
         unsafe {
             let res = bladerf_set_gain(self.device.assume_init(), module, gain);
 
@@ -370,7 +375,7 @@ impl BladeRF {
 
     // Sampling Control
 
-    pub fn set_sample_rate(&self, module: bladerf_module, rate: u32) -> Result<u32, isize> {
+    pub fn set_sample_rate(&self, module: bladerf_module, rate: u32) -> Result<u32, BladeRfError> {
         let mut actual: u32 = 0;
 
         unsafe {
@@ -384,7 +389,7 @@ impl BladeRF {
         &self,
         module: bladerf_module,
         rate: bladerf_rational_rate,
-    ) -> Result<bladerf_rational_rate, isize> {
+    ) -> Result<bladerf_rational_rate, BladeRfError> {
         let mut rate = rate;
 
         unsafe {
@@ -404,7 +409,7 @@ impl BladeRF {
         }
     }
 
-    pub fn get_sample_rate(&self, module: bladerf_module) -> Result<u32, isize> {
+    pub fn get_sample_rate(&self, module: bladerf_module) -> Result<u32, BladeRfError> {
         let mut rate: u32 = 0;
 
         unsafe {
@@ -417,7 +422,7 @@ impl BladeRF {
     pub fn get_rational_sample_rate(
         &self,
         module: bladerf_module,
-    ) -> Result<bladerf_rational_rate, isize> {
+    ) -> Result<bladerf_rational_rate, BladeRfError> {
         unsafe {
             let mut rate = bladerf_rational_rate {
                 integer: 0,
@@ -432,7 +437,7 @@ impl BladeRF {
         }
     }
 
-    pub fn set_sampling(&self, sampling: bladerf_sampling) -> Result<isize, isize> {
+    pub fn set_sampling(&self, sampling: bladerf_sampling) -> Result<isize, BladeRfError> {
         unsafe {
             let res = bladerf_set_sampling(self.device.assume_init(), sampling);
 
@@ -441,7 +446,7 @@ impl BladeRF {
     }
 
     /// Configure RX mux
-    pub fn set_rx_mux(&self, mux: bladerf_rx_mux) -> Result<isize, isize> {
+    pub fn set_rx_mux(&self, mux: bladerf_rx_mux) -> Result<isize, BladeRfError> {
         unsafe {
             let res = bladerf_set_rx_mux(self.device.assume_init(), mux);
 
@@ -450,7 +455,7 @@ impl BladeRF {
     }
 
     /// Fetch RX mux information
-    pub fn get_rx_mux(&self) -> Result<bladerf_rx_mux, isize> {
+    pub fn get_rx_mux(&self) -> Result<bladerf_rx_mux, BladeRfError> {
         let mut mux: bladerf_rx_mux = 0;
 
         unsafe {
@@ -462,7 +467,7 @@ impl BladeRF {
     }
 
     /// Fetch sampling rate
-    pub fn get_sampling(&self) -> Result<bladerf_sampling, isize> {
+    pub fn get_sampling(&self) -> Result<bladerf_sampling, BladeRfError> {
         unsafe {
             let mut sampling = bladerf_sampling_BLADERF_SAMPLING_UNKNOWN;
 
@@ -475,7 +480,11 @@ impl BladeRF {
     /// Configure bandwidth
     ///
     /// See: http://www.nuand.com/libbladeRF-doc/v1.7.2/group___f_n___b_a_n_d_w_i_d_t_h.html
-    pub fn set_bandwidth(&self, module: bladerf_module, bandwidth: u32) -> Result<u32, isize> {
+    pub fn set_bandwidth(
+        &self,
+        module: bladerf_module,
+        bandwidth: u32,
+    ) -> Result<u32, BladeRfError> {
         let mut actual: u32 = 0;
 
         unsafe {
@@ -487,7 +496,7 @@ impl BladeRF {
     }
 
     /// Fetch bandwidth information
-    pub fn get_bandwidth(&self, module: bladerf_module) -> Result<u32, isize> {
+    pub fn get_bandwidth(&self, module: bladerf_module) -> Result<u32, BladeRfError> {
         unsafe {
             let mut bandwidth: u32 = 0;
 
@@ -501,7 +510,7 @@ impl BladeRF {
         &self,
         module: bladerf_module,
         lpf_mode: bladerf_lpf_mode,
-    ) -> Result<isize, isize> {
+    ) -> Result<isize, BladeRfError> {
         unsafe {
             let res = bladerf_set_lpf_mode(self.device.assume_init(), module, lpf_mode);
 
@@ -509,7 +518,7 @@ impl BladeRF {
         }
     }
 
-    pub fn get_lpf_mode(&self, module: bladerf_module) -> Result<bladerf_lpf_mode, isize> {
+    pub fn get_lpf_mode(&self, module: bladerf_module) -> Result<bladerf_lpf_mode, BladeRfError> {
         unsafe {
             let mut lpf_mode = bladerf_lpf_mode_BLADERF_LPF_NORMAL;
 
@@ -527,7 +536,11 @@ impl BladeRF {
     /// Set frequency band
     ///
     /// See: http://www.nuand.com/libbladeRF-doc/v1.7.2/group___f_n___t_u_n_i_n_g.html
-    pub fn select_band(&self, module: bladerf_module, frequency: u64) -> Result<isize, isize> {
+    pub fn select_band(
+        &self,
+        module: bladerf_module,
+        frequency: u64,
+    ) -> Result<isize, BladeRfError> {
         unsafe {
             let res = bladerf_select_band(self.device.assume_init(), module, frequency);
 
@@ -538,7 +551,11 @@ impl BladeRF {
     /// Set frequency
     ///
     /// See: http://www.nuand.com/libbladeRF-doc/v1.7.2/group___f_n___t_u_n_i_n_g.html
-    pub fn set_frequency(&self, channel: BladeRFChannel, frequency: u64) -> Result<isize, isize> {
+    pub fn set_frequency(
+        &self,
+        channel: BladeRFChannel,
+        frequency: u64,
+    ) -> Result<isize, BladeRfError> {
         unsafe {
             let res = bladerf_set_frequency(
                 self.device.assume_init(),
@@ -551,7 +568,7 @@ impl BladeRF {
     }
 
     /// Fetch frequyency
-    pub fn get_frequency(&self, channel: BladeRFChannel) -> Result<u64, isize> {
+    pub fn get_frequency(&self, channel: BladeRFChannel) -> Result<u64, BladeRfError> {
         unsafe {
             let mut freq: u64 = 0;
 
@@ -572,7 +589,7 @@ impl BladeRF {
         time: u64,
         frequency: u64,
         quick_tune: Option<bladerf_quick_tune>,
-    ) -> Result<isize, isize> {
+    ) -> Result<isize, BladeRfError> {
         unsafe {
             let mut quick_tune_int: bladerf_quick_tune;
             let p: *mut bladerf_quick_tune;
@@ -597,7 +614,7 @@ impl BladeRF {
         }
     }
 
-    pub fn cancel_scheduled_retune(&self, module: bladerf_module) -> Result<isize, isize> {
+    pub fn cancel_scheduled_retune(&self, module: bladerf_module) -> Result<isize, BladeRfError> {
         unsafe {
             let res = bladerf_cancel_scheduled_retunes(self.device.assume_init(), module) as isize;
 
@@ -606,7 +623,10 @@ impl BladeRF {
     }
 
     #[cfg(feature = "unimplemented")]
-    pub fn get_quick_tune(&self, module: BladeRFChannel) -> Result<bladerf_quick_tune, isize> {
+    pub fn get_quick_tune(
+        &self,
+        module: BladeRFChannel,
+    ) -> Result<bladerf_quick_tune, BladeRfError> {
         unsafe {
             let mut quick_tune = bladerf_quick_tune {
                 freqsel: 0,
@@ -622,7 +642,7 @@ impl BladeRF {
         }
     }
 
-    pub fn set_tuning_mode(&self, mode: bladerf_tuning_mode) -> Result<isize, isize> {
+    pub fn set_tuning_mode(&self, mode: bladerf_tuning_mode) -> Result<isize, BladeRfError> {
         unsafe {
             let res = bladerf_set_tuning_mode(self.device.assume_init(), mode) as isize;
 
@@ -633,7 +653,7 @@ impl BladeRF {
     /// Set internal loopback state
     ///
     /// See: http://www.nuand.com/libbladeRF-doc/v1.7.2/group___f_n___l_o_o_p_b_a_c_k.html
-    pub fn set_loopback(&self, loopback: BladeRFLoopback) -> Result<isize, isize> {
+    pub fn set_loopback(&self, loopback: BladeRFLoopback) -> Result<isize, BladeRfError> {
         unsafe {
             let res = bladerf_set_loopback(self.device.assume_init(), loopback as bladerf_loopback);
 
@@ -642,7 +662,7 @@ impl BladeRF {
     }
 
     /// Fetch loopback state
-    pub fn get_loopback(&self) -> Result<BladeRFLoopback, isize> {
+    pub fn get_loopback(&self) -> Result<BladeRFLoopback, BladeRfError> {
         unsafe {
             let mut loopback = bladerf_loopback_BLADERF_LB_NONE;
 
@@ -686,7 +706,7 @@ impl BladeRF {
         buffer_size: u32,
         num_transfers: Option<u32>,
         stream_timeout: u32,
-    ) -> Result<isize, isize> {
+    ) -> Result<isize, BladeRfError> {
         let num_transfers = num_transfers.unwrap_or(4);
 
         unsafe {
@@ -718,7 +738,7 @@ impl BladeRF {
         data: &[Complex<i16>],
         meta: &mut bladerf_metadata,
         stream_timeout: u32,
-    ) -> Result<isize, isize> {
+    ) -> Result<isize, BladeRfError> {
         let data_ptr: *mut std::ffi::c_void = data.as_ptr() as *mut std::ffi::c_void;
 
         unsafe {
@@ -734,7 +754,11 @@ impl BladeRF {
         }
     }
 
-    pub fn sync_tx(&self, data: &[Complex<i16>], stream_timeout: u32) -> Result<isize, isize> {
+    pub fn sync_tx(
+        &self,
+        data: &[Complex<i16>],
+        stream_timeout: u32,
+    ) -> Result<isize, BladeRfError> {
         let data_ptr: *mut std::ffi::c_void = data.as_ptr() as *mut std::ffi::c_void;
 
         unsafe {
@@ -755,7 +779,7 @@ impl BladeRF {
         data: &mut [Complex<i16>],
         meta: &mut bladerf_metadata,
         stream_timeout: u32,
-    ) -> Result<isize, isize> {
+    ) -> Result<isize, BladeRfError> {
         let data_ptr: *mut std::ffi::c_void = data.as_ptr() as *mut std::ffi::c_void;
 
         unsafe {
@@ -771,7 +795,11 @@ impl BladeRF {
         }
     }
 
-    pub fn sync_rx(&self, data: &mut [Complex<i16>], stream_timeout: u32) -> Result<isize, isize> {
+    pub fn sync_rx(
+        &self,
+        data: &mut [Complex<i16>],
+        stream_timeout: u32,
+    ) -> Result<isize, BladeRfError> {
         let data_ptr: *mut std::ffi::c_void = data.as_ptr() as *mut std::ffi::c_void;
 
         unsafe {
@@ -789,7 +817,7 @@ impl BladeRF {
 
     // Device loading and programming
 
-    pub fn load_fpga(&self, file: String) -> Result<isize, isize> {
+    pub fn load_fpga(&self, file: String) -> Result<isize, BladeRfError> {
         let c_string = ffi::CString::new(file.into_bytes()).unwrap();
 
         unsafe {
@@ -808,7 +836,7 @@ impl BladeRF {
             enable: bool) -> ::libc::c_int;
     */
 
-    pub fn get_bias_tee(&self, module: bladerf_module) -> Result<bool, isize> {
+    pub fn get_bias_tee(&self, module: bladerf_module) -> Result<bool, BladeRfError> {
         unsafe {
             let mut value = false;
             let res = bladerf_get_bias_tee(self.device.assume_init(), module, &mut value);
@@ -816,7 +844,11 @@ impl BladeRF {
         }
     }
 
-    pub fn set_bias_tee(&self, module: bladerf_module, enable: bool) -> Result<isize, isize> {
+    pub fn set_bias_tee(
+        &self,
+        module: bladerf_module,
+        enable: bool,
+    ) -> Result<isize, BladeRfError> {
         unsafe {
             let res = bladerf_set_bias_tee(self.device.assume_init(), module, enable);
             handle_res!(res)
