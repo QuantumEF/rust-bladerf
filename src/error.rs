@@ -3,30 +3,28 @@ use std::{error::Error, ffi::CStr, fmt::Display};
 use bladerf_sys as sys;
 
 /// Error Codes as defined in <https://nuand.com/libbladeRF-doc/v2.5.0/group___r_e_t_c_o_d_e_s.html>
-#[repr(i32)]
 #[derive(Debug, Clone, Copy)]
 pub enum BladeRfError {
-    Unexpected = -1,
-    Range = -2,
-    Inval = -3,
-    Mem = -4,
-    Io = -5,
-    Timeout = -6,
-    Nodev = -7,
-    Unsupported = -8,
-    Misaligned = -9,
-    Checksum = -10,
-    NoFile = -11,
-    UpdateFpga = -12,
-    UpdateFw = -13,
-    TimePast = -14,
-    QueueFull = -15,
-    FpgaOp = -16,
-    Permission = -17,
-    WouldBlock = -18,
-    NotInit = -19,
-    /// Arbitrarily chosen discriminant
-    Unknown(i32) = i32::MIN,
+    Unexpected,
+    Range,
+    Inval,
+    Mem,
+    Io,
+    Timeout,
+    Nodev,
+    Unsupported,
+    Misaligned,
+    Checksum,
+    NoFile,
+    UpdateFpga,
+    UpdateFw,
+    TimePast,
+    QueueFull,
+    FpgaOp,
+    Permission,
+    WouldBlock,
+    NotInit,
+    Unknown(i32),
 }
 
 impl BladeRfError {
