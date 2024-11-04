@@ -6,7 +6,6 @@
 use std::mem::*;
 use std::*;
 
-use cmp::Ordering;
 use num_complex::Complex;
 
 use bladerf_sys::*;
@@ -202,20 +201,21 @@ impl BladeRF {
         // This function is depricated, in favor of bladerf_get_serial_struct()?
         let res = unsafe { bladerf_get_serial(self.device, serial_data.as_mut_ptr()) };
 
-        if res >= 0 {
-            // Map ::libc::c_char back to u8 as required for string manipulation
-            let serial_u8: Vec<u8> = serial_data.iter().map(|&x| x as u8).collect();
+        match BladeRfError::create_result(res) {
+            Ok(_) => {
+                // Map ::libc::c_char back to u8 as required for string manipulation
+                let serial_u8: Vec<u8> = serial_data.iter().map(|&x| x as u8).collect();
 
-            // Build String
-            // Safety: it is unclear if if the vector will actually be null terminated
-            //   it is initialized it with zeros,
-            //   so I presume that this function will only write up to 32 characters and not touch the last value.
-            let serial_cstr = unsafe { ffi::CString::from_vec_unchecked(serial_u8) };
-            let serial_str = serial_cstr.into_string().unwrap();
+                // Build String
+                // Safety: it is unclear if if the vector will actually be null terminated
+                //   it is initialized it with zeros,
+                //   so I presume that this function will only write up to 32 characters and not touch the last value.
+                let serial_cstr = unsafe { ffi::CString::from_vec_unchecked(serial_u8) };
+                let serial_str = serial_cstr.into_string().unwrap();
 
-            Ok(serial_str)
-        } else {
-            Err(res as isize)
+                Ok(serial_str)
+            }
+            Err(err) => Err(err),
         }
     }
 
@@ -243,10 +243,10 @@ impl BladeRF {
     pub fn is_fpga_configured(&self) -> Result<bool, BladeRfError> {
         let res = unsafe { bladerf_is_fpga_configured(self.device) };
 
-        match res.cmp(&0) {
-            Ordering::Greater => Ok(true),
-            Ordering::Equal => Ok(false),
-            Ordering::Less => Err(res as isize),
+        match BladeRfError::create_result(res) {
+            Ok(0) => Ok(false),
+            Ok(_) => Ok(true),
+            Err(err) => Err(err),
         }
     }
 
@@ -552,7 +552,7 @@ impl BladeRF {
     }
 
     pub fn cancel_scheduled_retune(&self, module: bladerf_module) -> Result<isize, BladeRfError> {
-        let res = unsafe { bladerf_cancel_scheduled_retunes(self.device, module) } as isize;
+        let res = unsafe { bladerf_cancel_scheduled_retunes(self.device, module) };
 
         handle_res!(res);
     }
@@ -576,7 +576,7 @@ impl BladeRF {
     }
 
     pub fn set_tuning_mode(&self, mode: bladerf_tuning_mode) -> Result<isize, BladeRfError> {
-        let res = unsafe { bladerf_set_tuning_mode(self.device, mode) } as isize;
+        let res = unsafe { bladerf_set_tuning_mode(self.device, mode) };
 
         handle_res!(res);
     }
@@ -595,13 +595,12 @@ impl BladeRF {
         let mut loopback = bladerf_loopback_BLADERF_LB_NONE;
 
         let res = unsafe { bladerf_get_loopback(self.device, &mut loopback) };
-        if res < 0 {
-            return Err(res as isize);
-        }
+
+        let _ = BladeRfError::create_result(res)?;
 
         match BladeRFLoopback::try_from(loopback) {
             Ok(v) => Ok(v),
-            Err(_) => Err(-1),
+            Err(_) => Err(BladeRfError::Unexpected),
         }
     }
 
@@ -910,7 +909,7 @@ mod tests {
         match device.set_sampling(sampling) {
             Ok(_) => (),
             Err(err) => {
-                if err != -8 {
+                if err != BladeRfError::Unsupported {
                     panic!(
                         "unexpected error of value when calling set_sampling {:?}",
                         err

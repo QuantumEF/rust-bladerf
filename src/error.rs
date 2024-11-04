@@ -3,7 +3,7 @@ use std::{error::Error, ffi::CStr, fmt::Display};
 use bladerf_sys as sys;
 
 /// Error Codes as defined in <https://nuand.com/libbladeRF-doc/v2.5.0/group___r_e_t_c_o_d_e_s.html>
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum BladeRfError {
     Unexpected,
     Range,
@@ -50,6 +50,14 @@ impl BladeRfError {
             -18 => Self::WouldBlock,
             -19 => Self::NotInit,
             x => Self::Unknown(x),
+        }
+    }
+
+    pub fn create_result(code: i32) -> Result<i32, BladeRfError> {
+        if code < 0 {
+            Err(BladeRfError::from_code(code))
+        } else {
+            Ok(code)
         }
     }
 }
